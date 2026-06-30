@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { prisma } from "@/lib/db";
 
+export const dynamic = 'force-dynamic';
+
 export default async function CatalogPage() {
   // Fetch real data dari Prisma
   let equipment: any[] = [];
