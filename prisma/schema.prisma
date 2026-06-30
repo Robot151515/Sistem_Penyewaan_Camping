@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CampRole {
+  ADMIN
+  CUSTOMER
+}
+
+model Users {
+  id            String          @id @default(uuid())
+  fullname      String
+  email         String          @unique
+  phone         String?
+  avatar        String?
+  password      String
+  role          CampRole        @default(CUSTOMER)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  rentals       Rentals[]
+  reviews       Reviews[]
+  wishlist      Wishlist[]
+  notifications Notifications[]
+
+  @@map("camp_users")
+}
+
+model Categories {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String?
+  icon        String?
+  createdAt   DateTime    @default(now())
+
+  equipment   Equipment[]
+
+  @@map("camp_categories")
+}
+
+enum CampEquipmentCondition {
+  NEW
+  GOOD
+  FAIR
+  POOR
+}
+
+enum CampEquipmentStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+model Equipment {
+  id          String                 @id @default(uuid())
+  categoryId  String
+  category    Categories             @relation(fields: [categoryId], references: [id])
+  name        String
+  slug        String                 @unique
+  description String?
+  brand       String?
+  condition   CampEquipmentCondition @default(GOOD)
+  stock       Int                    @default(0)
+  pricePerDay Float
+  deposit     Float                  @default(0)
+  location    String?
+  image       String?                // Main image
+  status      CampEquipmentStatus    @default(AVAILABLE)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  images      EquipmentImages[]
+  rentalItems RentalItems[]
+  reviews     Reviews[]
+  wishlist    Wishlist[]
+
+  @@map("camp_equipment")
+}
+
+model EquipmentImages {
+  id          String    @id @default(uuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  image       String
+
+  @@map("camp_equipment_images")
+}
+
+enum CampRentalStatus {
+  PENDING
+  APPROVED
+  ON_GOING
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+
+enum CampPaymentStatus {
+  UNPAID
+  VERIFYING
+  PAID
+  FAILED
+}
+
+model Rentals {
+  id            String            @id @default(uuid())
+  userId        String
+  user          Users             @relation(fields: [userId], references: [id])
+  bookingCode   String            @unique
+  startDate     DateTime
+  endDate       DateTime
+  totalDay      Int
+  subtotal      Float
+  deposit       Float
+  discount      Float             @default(0)
+  totalPrice    Float
+  status        CampRentalStatus  @default(PENDING)
+  paymentStatus CampPaymentStatus @default(UNPAID)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  items         RentalItems[]
+  payment       Payments?
+
+  @@map("camp_rentals")
+}
+
+model RentalItems {
+  id          String    @id @default(uuid())
+  rentalId    String
+  rental      Rentals   @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  qty         Int
+  price       Float
+  subtotal    Float
+
+  @@map("camp_rental_items")
+}
+
+enum CampPaymentMethod {
+  TRANSFER_BANK
+  E_WALLET
+  CASH
+}
+
+model Payments {
+  id            String             @id @default(uuid())
+  rentalId      String             @unique
+  rental        Rentals            @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  paymentMethod CampPaymentMethod?
+  paymentProof  String?
+  amount        Float
+  status        CampPaymentStatus  @default(VERIFYING)
+  paidAt        DateTime?
+
+  @@map("camp_payments")
+}
+
+model Reviews {
+  id          String    @id @default(uuid())
+  userId      String
+  user        Users     @relation(fields: [userId], references: [id])
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  rating      Int       @default(5)
+  comment     String?
+  createdAt   DateTime  @default(now())
+
+  @@map("camp_reviews")
+}
+
+model Wishlist {
+  id          String    @id @default(uuid())
+  userId      String
+  user        Users     @relation(fields: [userId], references: [id])
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, equipmentId])
+  @@map("camp_wishlist")
+}
+
+enum CampNotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+model Notifications {
+  id        String               @id @default(uuid())
+  userId    String?
+  user      Users?               @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      CampNotificationType @default(INFO)
+  isRead    Boolean              @default(false)
+  createdAt DateTime             @default(now())
+
+  @@map("camp_notifications")
+}
